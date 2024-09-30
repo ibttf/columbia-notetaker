@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Vidnotes",
+  "version": "1.0",
+  "description": "A chrome extension to make AI-generated video notes based on Columbia recitation recordings.",
+  "action": {
+    "default_popup": "index.html"
+  },
+  "permissions": ["storage", "activeTab", "scripting"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "48": "icon.png"
+  }
+}
