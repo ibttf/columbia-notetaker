@@ -3,16 +3,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log(
       "Coming from the content script, parseHTML action request received"
     )
-    const eventDivs = document.querySelectorAll("div.event-text") // Select all divs with class "event-text"
-    let content = ""
+    const textDivs = Array.from(document.querySelectorAll("div.event-text")) // Select all divs with class "event-text"
+    const timeDivs = Array.from(document.querySelectorAll("div.event-time")) // Select all divs with class "event-time"
 
-    eventDivs.forEach((div) => {
-      const spans = div.querySelectorAll("span") // Get all span elements inside the div
-      spans.forEach((span) => {
-        content += span.innerText + " "
+    let content = []
+
+    textDivs.forEach((textDiv, index) => {
+      const timeDiv = timeDivs[index] // Get the corresponding time div
+      const textSpans = textDiv.querySelectorAll("span") // Get all span elements inside the text div
+
+      let textContent = ""
+      textSpans.forEach((span) => {
+        textContent += span.innerText + " "
       })
-    })
 
-    sendResponse({ textContent: content.trim() }) // Send the collected text
+      let timeContent = ""
+      timeContent += timeDiv.innerText
+
+      content += textContent.trim() + timeContent.trim() + "\n" //TODO: CHANGE, WE CAN TURN THIS INTO AN OBJECT AND SEND IT AS A POST REQUEST IF EASIER
+    })
+    console.log("Coming from the content script, here's the content", content)
+
+    sendResponse({ textContent: content }) // Send the collected text and time as textContent
   }
 })

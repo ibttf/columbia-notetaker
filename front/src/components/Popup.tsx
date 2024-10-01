@@ -13,14 +13,12 @@ const Popup: React.FC = () => {
       console.log({ response })
     })
   }, [])
+
   const handleGenerateNotes = () => {
-    console.log("From the component, clicked generate notes")
     if (chrome && chrome.tabs) {
-      console.log("From the component,", chrome, chrome.tabs)
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const activeTab = tabs[0].id
         if (activeTab) {
-          console.log("From the component, active Tab", activeTab)
           // First inject the content script
           chrome.scripting.executeScript(
             {
