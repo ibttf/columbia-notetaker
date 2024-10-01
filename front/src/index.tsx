@@ -1,14 +1,11 @@
 import React from "react"
-import ReactDOM from "react-dom/client"
-import App from "./App"
+import ReactDOM from "react-dom"
 import "./index.css"
+import Popup from "./components/Popup"
 
-const root = document.createElement("div")
-root.className = "container"
-document.body.appendChild(root)
-const rootDiv = ReactDOM.createRoot(root)
-rootDiv.render(
+ReactDOM.render(
   <React.StrictMode>
-    <App />
-  </React.StrictMode>
+    <Popup />
+  </React.StrictMode>,
+  document.getElementById("root")
 )
