@@ -6,8 +6,15 @@
   "action": {
     "default_popup": "index.html"
   },
-  "permissions": ["storage", "activeTab", "scripting"],
-  "host_permissions": ["https://cvn.hosted.panopto.com/*"],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://cvn.hosted.panopto.com/*",
+    "https://*.pythonanywhere.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
