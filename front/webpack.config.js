@@ -12,10 +12,16 @@ module.exports = {
       {
         test: /\.tsx?$/,
         use: [
+          "style-loader",
+          "css-loader",
           {
-            loader: "ts-loader",
+            loader: "postcss-loader",
             options: {
-              compilerOptions: { noEmit: false }
+              postcssOptions: {
+                plugins: [
+                  require("autoprefixer")() // Ensure you include valid PostCSS plugins here
+                ]
+              }
             }
           }
         ],
