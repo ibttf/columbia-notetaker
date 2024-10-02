@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react"
 
 const Popup: React.FC = () => {
-  const [notes, setNotes] = useState<string | null>(null)
+  const [notes, setNotes] = useState<string | TrustedHTML>("")
   const [isLecturePage, setIsLecturePage] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
-
+  const [error, setError] = useState<string>("")
   useEffect(() => {
     chrome.runtime.sendMessage("checkURL", (response) => {
       if (response && response.isLecturePage !== undefined) {
@@ -12,6 +12,11 @@ const Popup: React.FC = () => {
       }
     })
   }, [])
+  const makeError = (text: string) => {
+    setError(text)
+    setNotes("")
+    setIsLoading(false)
+  }
 
   const handleGenerateNotes = () => {
     setIsLoading(true)
@@ -46,23 +51,28 @@ const Popup: React.FC = () => {
                       )
 
                       if (!apiResponse.ok) {
-                        throw new Error("API response was not ok")
+                        makeError("Sorry, there was an error on our end.")
                       }
 
                       const data = await apiResponse.text()
-                      console.log({ data })
                       setNotes(data)
                     } catch (error) {
                       console.error("Error:", error)
-                      setNotes("An error occurred while generating notes.")
+                      makeError("An error occurred while generating notes.")
                     } finally {
                       setIsLoading(false)
                     }
+                  } else {
+                    makeError(
+                      "Sorry, there was an error fetching the content on the page."
+                    )
                   }
                 }
               )
             }
           )
+        } else {
+          makeError("Sorry, we don't work on these URL's.")
         }
       })
     }
@@ -74,7 +84,9 @@ const Popup: React.FC = () => {
         <>
           <h1 className="text-xl font-bold mb-4">Video lecture found</h1>
           <button
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4"
+            className={`bg-blue-500 ${
+              isLoading ? "bg-blue-300" : "hover:bg-blue-700"
+            } text-white font-bold py-2 px-4 rounded mb-4`}
             onClick={handleGenerateNotes}
             disabled={isLoading}
           >
@@ -84,8 +96,8 @@ const Popup: React.FC = () => {
       ) : (
         <h1 className="text-xl font-bold mb-4">Not a video lecture</h1>
       )}
-
-      {notes && <div>{notes}</div>}
+      {error && <p className="text-red-500">{error}</p>}
+      {notes && <div dangerouslySetInnerHTML={{ __html: notes }}></div>}
     </div>
   )
 }

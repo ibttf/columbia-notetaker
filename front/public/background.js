@@ -19,7 +19,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message === "checkURL") {
     // Get the active tab
-    console.log("Checking URL, use effect is called for the Popup component")
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs.length === 0) {
         sendResponse({ isLecturePage: false })
@@ -27,14 +26,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
 
       const activeTab = tabs[0]
-      console.log({
-        activeTab,
-        url: activeTab.url,
-        bool: activeTab && activeTab.url
-      })
       if (activeTab && activeTab.url) {
         const isLecturePage = activeTab.url.includes("hosted.panopto.com")
-        console.log({ isLecturePage })
         sendResponse({ isLecturePage: isLecturePage }) // Send boolean to popup
       } else {
         sendResponse({ isLecturePage: false })
