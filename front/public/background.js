@@ -9,10 +9,7 @@ chrome.runtime.onInstalled.addListener(() => {
 // Example: Event listener for tab updates
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete") {
-    console.log(
-      `Tab url ${tab.url}`,
-      tab.url.includes("cvn.hosted.panopto.com")
-    )
+    console.log(`Tab url ${tab.url}`, tab.url.includes("hosted.panopto.com"))
     console.log(`Tab ${tabId} has been updated.`)
     // You can inject content scripts here if needed
   }
@@ -36,7 +33,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         bool: activeTab && activeTab.url
       })
       if (activeTab && activeTab.url) {
-        const isLecturePage = activeTab.url.includes("cvn.hosted.panopto.com")
+        const isLecturePage = activeTab.url.includes("hosted.panopto.com")
         console.log({ isLecturePage })
         sendResponse({ isLecturePage: isLecturePage }) // Send boolean to popup
       } else {

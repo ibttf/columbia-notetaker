@@ -1,23 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"
 
 const Popup: React.FC = () => {
-  const [notes, setNotes] = useState<string | null>(null);
-  const [isLecturePage, setIsLecturePage] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [notes, setNotes] = useState<string | null>(null)
+  const [isLecturePage, setIsLecturePage] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
 
   useEffect(() => {
     chrome.runtime.sendMessage("checkURL", (response) => {
       if (response && response.isLecturePage !== undefined) {
-        setIsLecturePage(response.isLecturePage);
+        setIsLecturePage(response.isLecturePage)
       }
-    });
-  }, []);
+    })
+  }, [])
 
   const handleGenerateNotes = () => {
-    setIsLoading(true);
+    setIsLoading(true)
     if (chrome && chrome.tabs) {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        const activeTab = tabs[0];
+        const activeTab = tabs[0]
         if (activeTab && activeTab.id) {
           chrome.scripting.executeScript(
             {
@@ -31,38 +31,42 @@ const Popup: React.FC = () => {
                 async (response) => {
                   if (response && response.textContent) {
                     try {
-                      const apiResponse = await fetch('https://generatenotes.pythonanywhere.com/generate_notes', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          transcript: response.textContent,
-                          base_url: activeTab.url
-                        }),
-                      });
+                      const apiResponse = await fetch(
+                        "https://generatenotes.pythonanywhere.com/generate_notes",
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json"
+                          },
+                          body: JSON.stringify({
+                            transcript: response.textContent,
+                            base_url: activeTab.url
+                          })
+                        }
+                      )
 
                       if (!apiResponse.ok) {
-                        throw new Error('API response was not ok');
+                        throw new Error("API response was not ok")
                       }
 
-                      const data = await apiResponse.json();
-                      setNotes(data.html_content);
+                      const data = await apiResponse.text()
+                      console.log({ data })
+                      setNotes(data)
                     } catch (error) {
-                      console.error('Error:', error);
-                      setNotes('An error occurred while generating notes.');
+                      console.error("Error:", error)
+                      setNotes("An error occurred while generating notes.")
                     } finally {
-                      setIsLoading(false);
+                      setIsLoading(false)
                     }
                   }
                 }
-              );
+              )
             }
-          );
+          )
         }
-      });
+      })
     }
-  };
+  }
 
   return (
     <div className="p-4 w-72">
@@ -74,20 +78,16 @@ const Popup: React.FC = () => {
             onClick={handleGenerateNotes}
             disabled={isLoading}
           >
-            {isLoading ? 'Generating...' : 'Generate notes?'}
+            {isLoading ? "Generating..." : "Generate notes?"}
           </button>
         </>
       ) : (
         <h1 className="text-xl font-bold mb-4">Not a video lecture</h1>
       )}
-      {notes && (
-        <div
-          dangerouslySetInnerHTML={{ __html: notes }}
-          className="mt-4 p-2 border border-gray-300 rounded"
-        ></div>
-      )}
-    </div>
-  );
-};
 
-export default Popup;
+      {notes && <div>{notes}</div>}
+    </div>
+  )
+}
+
+export default Popup
