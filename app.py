@@ -5,12 +5,17 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 import instructor
 from pydantic import BaseModel, Field
+from flask import Flask, request, jsonify
 
-load_dotenv("/Users/neel/Documents/vidnotes/.env")
+app = Flask(__name__)
 
-model = genai.GenerativeModel('gemini-1.5-flash')
+# Load environment variables
+load_dotenv()
+
+# Configure Google AI
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
+model = genai.GenerativeModel('gemini-1.5-flash')
 client = instructor.from_gemini(
     client=genai.GenerativeModel(
         model_name="models/gemini-1.5-flash",
@@ -106,40 +111,21 @@ def create_html_content(notes: GoogleDocsNotes, base_url: str):
     """
     return full_html
 
-def main():
-    print("Welcome to the Class Notes Generator with HTML Output!")
+@app.route('/generate_notes', methods=['POST'])
+def generate_notes():
+    data = request.json
+    transcript = data.get('transcript')
+    base_url = data.get('base_url')
 
-    base_url = input("Please enter the base URL for the video (without the '&start=' parameter): ")
-    
-    while True:
-        file_name = input("Please enter the name of the text file containing your class transcript: ")
-        
-        if os.path.exists(file_name):
-            try:
-                with open(file_name, 'r') as file:
-                    transcript = file.read()
-                break
-            except Exception as e:
-                print(f"Error reading the file: {e}")
-                print("Please try again.")
-        else:
-            print("File not found. Please make sure the file exists and try again.")
-    
-    print("\nGenerating class notes... This may take a moment.")
-    notes = generate_class_notes(transcript)
-    
-    print("\nClass notes generated successfully!")
-    
-    html_content = create_html_content(notes, base_url)
-    
-    class_name = file_name.rstrip(".txt")
+    if not transcript or not base_url:
+        return jsonify({"error": "Missing transcript or base_url"}), 400
 
-    output_filename = f"{class_name}.html"
-    with open(output_filename, 'w') as f:
-        f.write(html_content)
-    
-    print(f"\nHTML file saved as: {output_filename}")
-    print("You can now open this HTML file in a web browser to view your notes with clickable timestamps.")
+    try:
+        notes = generate_class_notes(transcript)
+        html_content = create_html_content(notes, base_url)
+        return jsonify({"html_content": html_content})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    app.run(debug=True)
