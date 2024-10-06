@@ -70,13 +70,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return response.text() // or response.json() based on your API
       })
       .then((data) => {
-        sendResponse({ data })
+        // Send the notes content to the content script
+        console.log("Sending notes to the content script file")
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          const activeTab = tabs[0]
+          if (activeTab) {
+            // Send the notes content to the content script
+            chrome.tabs.sendMessage(activeTab.id, {
+              action: "notesGenerated",
+              notesContent: data
+            })
+          } else {
+            console.error("No active tab found to send message.")
+          }
+        })
       })
       .catch((error) => {
         console.error("Error:", error)
         sendResponse({ error: "An error occurred while generating notes." })
       })
 
-    return true // Indicates that sendResponse will be called asynchronously
+    return true
   }
 })
