@@ -35,47 +35,38 @@ const Popup: React.FC = () => {
               chrome.tabs.sendMessage(
                 activeTab.id!,
                 { action: "parseHTML" },
-                async (response) => {
+                (response) => {
                   if (response && response.textContent) {
-                    try {
-                      console.log({
-                        textContent: response.textContent,
-                        base_url: activeTab.url
-                      })
-                      const apiResponse = await fetch(
-                        "https://generatenotes.pythonanywhere.com/generate_notes",
-                        {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json"
-                          },
-                          body: JSON.stringify({
-                            transcript: response.textContent,
-                            base_url: activeTab.url
-                          })
+                    // Send data to the background script
+                    chrome.runtime.sendMessage(
+                      {
+                        action: "generateNotes",
+                        payload: {
+                          transcript: response.textContent,
+                          baseUrl: activeTab.url
                         }
-                      )
+                      },
+                      (response) => {
+                        if (response) {
+                          if (response.data) {
+                            // Create a Blob from the notes content
+                            const blob = new Blob([response.data], {
+                              type: "text/html"
+                            })
+                            const blobUrl = URL.createObjectURL(blob)
 
-                      if (!apiResponse.ok) {
-                        makeError("Sorry, there was an error on our end.")
+                            // Open a new tab with the Blob URL
+                            window.open(blobUrl, "_blank")
+                          } else if (response.error) {
+                            makeError(response.error)
+                          }
+                        } else {
+                          makeError(
+                            "No response received from the background script."
+                          )
+                        }
                       }
-
-                      const data = await apiResponse.text()
-                      console.log({ data })
-                      setNotes(data)
-
-                      // Create a Blob from the notes content
-                      const blob = new Blob([data], { type: "text/html" })
-                      const blobUrl = URL.createObjectURL(blob)
-
-                      // Open a new tab with the Blob URL
-                      window.open(blobUrl, "_blank")
-                    } catch (error) {
-                      console.error("Error:", error)
-                      makeError("An error occurred while generating notes.")
-                    } finally {
-                      setIsLoading(false)
-                    }
+                    )
                   } else {
                     makeError(
                       "Sorry, there was an error fetching the content on the page."
@@ -86,7 +77,7 @@ const Popup: React.FC = () => {
             }
           )
         } else {
-          makeError("Sorry, we don't work on these URL's.")
+          makeError("Sorry, we don't work on these URLs.")
         }
       })
     }
