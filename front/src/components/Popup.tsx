@@ -99,7 +99,7 @@ const Popup: React.FC = () => {
           <h1 className="text-xl font-bold mb-4">Video lecture found</h1>
           <button
             className={`bg-blue-500 ${
-              isLoading ? "bg-blue-200" : "hover:bg-blue-700"
+              isLoading ? "bg-gray-200" : "hover:bg-blue-700"
             } text-white font-bold py-2 px-4 rounded mb-4`}
             onClick={handleGenerateNotes}
             disabled={isLoading}

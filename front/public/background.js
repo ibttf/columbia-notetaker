@@ -6,15 +6,6 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log("Extension installed or updated.")
 })
 
-// Example: Event listener for tab updates
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete") {
-    console.log(`Tab url ${tab.url}`, tab.url.includes("hosted.panopto.com"))
-    console.log(`Tab ${tabId} has been updated.`)
-    // You can inject content scripts here if needed
-  }
-})
-
 // Listen for messages from popup to check URL
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message === "checkURL") {
@@ -26,9 +17,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
 
       const activeTab = tabs[0]
-      if (activeTab && activeTab.url) {
-        const isLecturePage = activeTab.url.includes("hosted.panopto.com")
-        sendResponse({ isLecturePage: isLecturePage }) // Send boolean to popup
+      if (
+        activeTab &&
+        activeTab.url &&
+        activeTab.url.includes("hosted.panopto.com")
+      ) {
+        sendResponse({ isLecturePage: true }) // Send boolean to popup
       } else {
         sendResponse({ isLecturePage: false })
       }
