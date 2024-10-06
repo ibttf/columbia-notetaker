@@ -56,6 +56,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const { transcript, baseUrl } = message.payload
 
     // Call your API to generate notes
+
+    const timeout = setTimeout(() => {
+      sendResponse({ error: "Request timed out while generating notes." })
+    }, 5 * 60000)
+
     fetch("https://generatenotes.pythonanywhere.com/generate_notes", {
       method: "POST",
       headers: {
@@ -64,13 +69,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       body: JSON.stringify({ transcript, base_url: baseUrl })
     })
       .then((response) => {
+        clearTimeout(timeout) // Clear the timeout if the request completes in time
         if (!response.ok) {
-          sendResponse({ error: "An error occurred while generating notes." })
-          throw new Error("Failed to generate notes.")
+          return { error: "An error occurred while generating notes." }
         }
         return response.text() // or response.json() based on your API
       })
       .then((data) => {
+        if (data && data.error) {
+          throw new Error(data.error)
+        }
         // Send the notes content to the content script
         console.log("Sending notes to the content script file")
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -87,7 +95,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         })
       })
       .catch((error) => {
-        console.error("Error:", error)
+        clearTimeout(timeout) // Clear the timeout in case of an error
         sendResponse({ error: "An error occurred while generating notes." })
       })
 

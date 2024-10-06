@@ -131,6 +131,7 @@ def generate_notes():
 
         for attempt in range(1, max_attempts + 1):
             try:
+                
                 html_content = create_html_content(generate_class_notes(transcript, attempt), base_url)
                 break  # If successful, exit the loop
             except Exception as e:

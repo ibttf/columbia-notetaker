@@ -38,13 +38,22 @@ const Popup: React.FC = () => {
                 (response) => {
                   if (response && response.textContent) {
                     // Send data to the background script
-                    chrome.runtime.sendMessage({
-                      action: "generateNotes",
-                      payload: {
-                        transcript: response.textContent,
-                        baseUrl: activeTab.url
+                    chrome.runtime.sendMessage(
+                      {
+                        action: "generateNotes",
+                        payload: {
+                          transcript: response.textContent,
+                          baseUrl: activeTab.url
+                        }
+                      },
+                      (response) => {
+                        if (response && response.error) {
+                          makeError(response.error)
+                        }
                       }
-                    })
+                    )
+                  } else {
+                    makeError("Failed to parse HTML.")
                   }
                 }
               )
@@ -78,7 +87,7 @@ const Popup: React.FC = () => {
       ) : (
         <p className="text-gray-500">Not a video lecture</p>
       )}
-      {response.error && <p className="text-red-500 text-xs mt-1">{error}</p>}{" "}
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}{" "}
     </div>
   )
 }
