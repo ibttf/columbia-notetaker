@@ -6,7 +6,7 @@
   "action": {
     "default_popup": "index.html"
   },
-  "permissions": ["storage", "activeTab", "scripting"],
+  "permissions": ["activeTab", "scripting"],
   "host_permissions": [
     "https://cvn.hosted.panopto.com/*",
     "https://columbia.hosted.panopto.com/*",

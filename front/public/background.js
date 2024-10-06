@@ -65,6 +65,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })
       .then((response) => {
         if (!response.ok) {
+          sendResponse({ error: "An error occurred while generating notes." })
           throw new Error("Failed to generate notes.")
         }
         return response.text() // or response.json() based on your API

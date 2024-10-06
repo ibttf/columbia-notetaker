@@ -45,10 +45,6 @@ const Popup: React.FC = () => {
                         baseUrl: activeTab.url
                       }
                     })
-                  } else {
-                    makeError(
-                      "Sorry, there was an error fetching the content on the page."
-                    )
                   }
                 }
               )
@@ -82,7 +78,7 @@ const Popup: React.FC = () => {
       ) : (
         <p className="text-gray-500">Not a video lecture</p>
       )}
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}{" "}
+      {response.error && <p className="text-red-500 text-xs mt-1">{error}</p>}{" "}
     </div>
   )
 }
