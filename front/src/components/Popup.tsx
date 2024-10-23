@@ -325,6 +325,12 @@ const Popup: React.FC = () => {
         </div>
       )}
       {error && <p className="text-red-500 text-sm">{error}</p>}
+      <div
+        className="font-mono text-gray-800 relative bottom-0 p-0 m-0 flex w-full text-center justify-center"
+        style={{ fontSize: "10px" }}
+      >
+        Made by Roy n' Neel 💖
+      </div>
     </div>
   )
 }
