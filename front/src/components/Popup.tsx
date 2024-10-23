@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { AiOutlineLoading } from "react-icons/ai"
+import Loading from "./Loading"
 const Popup: React.FC = () => {
   const [notes, setNotes] = useState<string>("")
   const [isLecturePage, setIsLecturePage] = useState<boolean>(false)
@@ -13,6 +13,10 @@ const Popup: React.FC = () => {
       }
     })
   }, [])
+
+  useEffect(() => {
+    //check database to see if this id exists, if so, then grab the blob
+  })
 
   const makeError = (text: string) => {
     setError(text)
@@ -36,22 +40,60 @@ const Popup: React.FC = () => {
                 activeTab.id!,
                 { action: "parseHTML" },
                 (response) => {
+                  console.log({
+                    text: response.textContent,
+                    base_url: activeTab.url
+                  })
                   if (response && response.textContent) {
-                    // Send data to the background script
-                    chrome.runtime.sendMessage(
+                    fetch(
+                      "https://generatenotes.pythonanywhere.com/generate_notes",
                       {
-                        action: "generateNotes",
-                        payload: {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
                           transcript: response.textContent,
-                          baseUrl: activeTab.url
-                        }
-                      },
-                      (response) => {
-                        if (response && response.error) {
-                          makeError(response.error)
-                        }
+                          base_url: activeTab.url
+                        })
                       }
                     )
+                      .then((response: any) => {
+                        if (!response.ok) {
+                          return {
+                            error: "An error occurred while generating notes."
+                          }
+                        }
+                        console.log({ response })
+                        return response.text()
+                      })
+                      .then((data) => {
+                        if (data && data.error) {
+                          throw new Error(data.error)
+                        }
+                        console.log("Sending notes to the content script file")
+                        chrome.tabs.query(
+                          { active: true, currentWindow: true },
+                          (tabs) => {
+                            const activeTab = tabs[0]
+                            if (activeTab) {
+                              // Send the notes content to the content script
+                              chrome.tabs.sendMessage(activeTab.id as number, {
+                                action: "notesGenerated",
+                                notesContent: data
+                              })
+                            } else {
+                              console.error(
+                                "No active tab found to send message."
+                              )
+                            }
+                          }
+                        )
+                      })
+                      .catch((error) => {
+                        // clearTimeout(timeout) // Clear the timeout in case of an error
+                        makeError("An error occurred while generating notes.")
+                      })
                   } else {
                     makeError("Failed to parse HTML.")
                   }
@@ -73,7 +115,7 @@ const Popup: React.FC = () => {
     >
       {isLoading ? (
         <div className="flex items-center">
-          <AiOutlineLoading className="animate-spin text-blue-500" size={20} />{" "}
+          <Loading time={20} />
         </div>
       ) : isLecturePage ? (
         <button

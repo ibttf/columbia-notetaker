@@ -52,53 +52,5 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })
 
     return true // Indicates that sendResponse will be called asynchronously
-  } else if (message.action === "generateNotes") {
-    const { transcript, baseUrl } = message.payload
-
-    // Call your API to generate notes
-
-    const timeout = setTimeout(() => {
-      sendResponse({ error: "Request timed out while generating notes." })
-    }, 5 * 60000)
-
-    fetch("https://generatenotes.pythonanywhere.com/generate_notes", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ transcript, base_url: baseUrl })
-    })
-      .then((response) => {
-        clearTimeout(timeout) // Clear the timeout if the request completes in time
-        if (!response.ok) {
-          return { error: "An error occurred while generating notes." }
-        }
-        return response.text() // or response.json() based on your API
-      })
-      .then((data) => {
-        if (data && data.error) {
-          throw new Error(data.error)
-        }
-        // Send the notes content to the content script
-        console.log("Sending notes to the content script file")
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          const activeTab = tabs[0]
-          if (activeTab) {
-            // Send the notes content to the content script
-            chrome.tabs.sendMessage(activeTab.id, {
-              action: "notesGenerated",
-              notesContent: data
-            })
-          } else {
-            console.error("No active tab found to send message.")
-          }
-        })
-      })
-      .catch((error) => {
-        clearTimeout(timeout) // Clear the timeout in case of an error
-        sendResponse({ error: "An error occurred while generating notes." })
-      })
-
-    return true
   }
 })
