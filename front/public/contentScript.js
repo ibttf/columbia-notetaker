@@ -21,7 +21,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     })
     sendResponse({ textContent: content }) // Send the collected text and time as textContent
   } else if (request.action === "notesGenerated") {
-    console.log("Notes received in the content script")
     const notesContent = request.notesContent
 
     // Create a Blob from the notes content

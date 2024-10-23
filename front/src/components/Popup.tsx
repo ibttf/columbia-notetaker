@@ -230,10 +230,9 @@ const Popup: React.FC = () => {
         throw new Error("No video ID found in URL")
       }
 
+      // Save to Supabase first
       await saveNotesToSupabase(video_id, notesContent)
-      setSavedNotes(notesContent)
 
-      console.log("Sending notes to content script")
       await sendMessageToContentScript(activeTab.id, {
         action: "notesGenerated",
         notesContent: notesContent
