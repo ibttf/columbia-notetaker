@@ -1,135 +1,335 @@
 import React, { useState, useEffect } from "react"
+import { createClient, SupabaseClient } from "@supabase/supabase-js"
 import Loading from "./Loading"
+
+interface Note {
+  content: string
+  video_id: string
+}
+
+const supabaseUrl = "https://ldnzntdtvrowsnjhscvj.supabase.co"
+const supabaseKey =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkbnpudGR0dnJvd3NuamhzY3ZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk3MTkxMzgsImV4cCI6MjA0NTI5NTEzOH0.q4NG38HESASbRF9vc2BDT6PIKZ4MPMXbQQ6rlz4aGBE"
+const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey)
+
 const Popup: React.FC = () => {
-  const [notes, setNotes] = useState<string>("")
   const [isLecturePage, setIsLecturePage] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string>("")
+  const [savedNotes, setSavedNotes] = useState<string | null>(null)
 
   useEffect(() => {
-    chrome.runtime.sendMessage("checkURL", (response) => {
-      if (response && response.isLecturePage !== undefined) {
-        setIsLecturePage(response.isLecturePage)
-      }
-    })
+    checkIfLecturePage()
+    fetchNotes()
   }, [])
 
-  useEffect(() => {
-    //check database to see if this id exists, if so, then grab the blob
-  })
-
-  const makeError = (text: string) => {
-    setError(text)
-    setNotes("")
-    setIsLoading(false)
-  }
-
-  const handleGenerateNotes = () => {
-    setIsLoading(true)
-    if (chrome && chrome.tabs) {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        const activeTab = tabs[0]
-        if (activeTab && activeTab.id) {
+  const ensureContentScript = async (tabId: number): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      // First try to message the content script to see if it's already there
+      chrome.tabs.sendMessage(tabId, { action: "ping" }, (response) => {
+        if (chrome.runtime.lastError) {
+          // Content script isn't there, inject it
+          console.log("Injecting content script...")
           chrome.scripting.executeScript(
             {
-              target: { tabId: activeTab.id },
+              target: { tabId },
               files: ["contentScript.js"]
             },
             () => {
-              chrome.tabs.sendMessage(
-                activeTab.id!,
-                { action: "parseHTML" },
-                (response) => {
-                  console.log({
-                    text: response.textContent,
-                    base_url: activeTab.url
-                  })
-                  if (response && response.textContent) {
-                    fetch(
-                      "https://generatenotes.pythonanywhere.com/generate_notes",
-                      {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                          transcript: response.textContent,
-                          base_url: activeTab.url
-                        })
-                      }
-                    )
-                      .then((response: any) => {
-                        if (!response.ok) {
-                          return {
-                            error: "An error occurred while generating notes."
-                          }
-                        }
-                        console.log({ response })
-                        return response.text()
-                      })
-                      .then((data) => {
-                        if (data && data.error) {
-                          throw new Error(data.error)
-                        }
-                        console.log("Sending notes to the content script file")
-                        chrome.tabs.query(
-                          { active: true, currentWindow: true },
-                          (tabs) => {
-                            const activeTab = tabs[0]
-                            if (activeTab) {
-                              // Send the notes content to the content script
-                              chrome.tabs.sendMessage(activeTab.id as number, {
-                                action: "notesGenerated",
-                                notesContent: data
-                              })
-                            } else {
-                              console.error(
-                                "No active tab found to send message."
-                              )
-                            }
-                          }
-                        )
-                      })
-                      .catch((error) => {
-                        // clearTimeout(timeout) // Clear the timeout in case of an error
-                        makeError("An error occurred while generating notes.")
-                      })
-                  } else {
-                    makeError("Failed to parse HTML.")
-                  }
-                }
-              )
+              if (chrome.runtime.lastError) {
+                reject(new Error("Failed to inject content script"))
+              } else {
+                // Wait a bit for the script to initialize
+                setTimeout(resolve, 100)
+              }
             }
           )
         } else {
-          makeError("Sorry, we don't work on these URLs.")
+          // Content script is already there
+          resolve()
         }
       })
+    })
+  }
+
+  const sendMessageToContentScript = async (
+    tabId: number,
+    message: any
+  ): Promise<any> => {
+    try {
+      await ensureContentScript(tabId)
+
+      return new Promise((resolve, reject) => {
+        chrome.tabs.sendMessage(tabId, message, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message))
+          } else {
+            resolve(response)
+          }
+        })
+      })
+    } catch (error) {
+      console.error("Error sending message to content script:", error)
+      throw error
     }
   }
+
+  const checkIfLecturePage = async () => {
+    try {
+      const tabs = await chrome.tabs.query({
+        active: true,
+        currentWindow: true
+      })
+      const activeTab = tabs[0]
+
+      if (!activeTab?.url) {
+        console.log("No active tab URL found")
+        return
+      }
+
+      console.log("Checking URL:", activeTab.url)
+
+      chrome.runtime.sendMessage("checkURL", (response) => {
+        console.log("checkURL response:", response)
+        if (response && response.isLecturePage !== undefined) {
+          console.log("Setting isLecturePage to:", response.isLecturePage)
+          setIsLecturePage(response.isLecturePage)
+        }
+      })
+    } catch (err) {
+      console.error("Error checking lecture page:", err)
+    }
+  }
+
+  const fetchNotes = async () => {
+    try {
+      const tabs = await chrome.tabs.query({
+        active: true,
+        currentWindow: true
+      })
+      const activeTab = tabs[0]
+
+      if (!activeTab?.url) {
+        throw new Error("No active tab URL found")
+      }
+
+      const activeUrl = new URL(activeTab.url)
+      const video_id = activeUrl.searchParams.get("id")
+
+      if (!video_id) {
+        console.log("No video ID found in URL")
+        return
+      }
+
+      console.log("Fetching notes for video_id:", video_id)
+
+      const { data, error } = await supabase
+        .from("notes")
+        .select("content")
+        .eq("video_id", video_id)
+        .single()
+
+      if (error) {
+        if (error.code !== "PGRST116") {
+          console.error("Supabase fetch error:", error)
+          throw error
+        }
+        return
+      }
+
+      if (data?.content) {
+        console.log("Found existing notes")
+        setSavedNotes(data.content)
+      }
+    } catch (err) {
+      makeError(err instanceof Error ? err.message : "Failed to fetch notes")
+    }
+  }
+
+  const makeError = (text: string) => {
+    console.error("Error:", text)
+    setError(text)
+    setIsLoading(false)
+  }
+
+  const showSavedNotes = async () => {
+    try {
+      const tabs = await chrome.tabs.query({
+        active: true,
+        currentWindow: true
+      })
+      const activeTab = tabs[0]
+
+      if (!activeTab?.id || !savedNotes) {
+        throw new Error("Cannot display notes at this time")
+      }
+
+      await sendMessageToContentScript(activeTab.id, {
+        action: "notesGenerated",
+        notesContent: savedNotes
+      })
+    } catch (err) {
+      makeError(
+        err instanceof Error ? err.message : "Failed to display saved notes"
+      )
+    }
+  }
+
+  const handleGenerateNotes = async () => {
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const tabs = await chrome.tabs.query({
+        active: true,
+        currentWindow: true
+      })
+      const activeTab = tabs[0]
+
+      if (!activeTab?.id || !activeTab?.url) {
+        throw new Error("No active tab found")
+      }
+
+      console.log("Getting HTML content")
+      const response = await sendMessageToContentScript(activeTab.id, {
+        action: "parseHTML"
+      })
+
+      if (!response?.textContent) {
+        throw new Error("Failed to parse HTML content")
+      }
+
+      console.log("Sending request to generate notes")
+      const notesResponse = await fetch(
+        "https://generatenotes.pythonanywhere.com/generate_notes",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "text/plain, application/json"
+          },
+          body: JSON.stringify({
+            transcript: response.textContent,
+            base_url: activeTab.url
+          })
+        }
+      )
+
+      if (!notesResponse.ok) {
+        throw new Error(`Failed to generate notes: ${notesResponse.status}`)
+      }
+
+      const notesContent = await notesResponse.text()
+      console.log("Generated notes length:", notesContent.length)
+
+      const activeUrl = new URL(activeTab.url)
+      const video_id = activeUrl.searchParams.get("id")
+
+      if (!video_id) {
+        throw new Error("No video ID found in URL")
+      }
+
+      await saveNotesToSupabase(video_id, notesContent)
+      setSavedNotes(notesContent)
+
+      console.log("Sending notes to content script")
+      await sendMessageToContentScript(activeTab.id, {
+        action: "notesGenerated",
+        notesContent: notesContent
+      })
+
+      setIsLoading(false)
+    } catch (err) {
+      console.error("Full error:", err)
+      makeError(
+        err instanceof Error ? err.message : "An unexpected error occurred"
+      )
+    }
+  }
+
+  const saveNotesToSupabase = async (
+    video_id: string,
+    notesContent: string
+  ) => {
+    try {
+      console.log("Saving notes for video_id:", video_id)
+      const { error: insertError } = await supabase
+        .from("notes")
+        .insert([
+          {
+            video_id,
+            content: notesContent
+          }
+        ])
+        .select()
+
+      if (insertError) {
+        if (insertError.code === "23505") {
+          // Unique violation
+          console.log("Note exists, updating instead")
+          const { error: updateError } = await supabase
+            .from("notes")
+            .update({ content: notesContent })
+            .eq("video_id", video_id)
+            .select()
+
+          if (updateError) throw updateError
+        } else {
+          throw insertError
+        }
+      }
+
+      console.log("Successfully saved notes")
+      return { success: true }
+    } catch (error) {
+      console.error("Supabase save error:", error)
+      throw error
+    }
+  }
+
+  if (!isLecturePage) {
+    return <p className="text-gray-500 p-4">Not a video lecture</p>
+  }
+
   return (
-    <div
-      className={`transition-opacity duration-300 opacity-100 w-fit ${
-        isLoading && "p-4"
-      }`}
-    >
+    <div className="p-4 space-y-4">
       {isLoading ? (
-        <div className="flex items-center">
+        <div className="flex items-center justify-center">
           <Loading time={20} />
         </div>
-      ) : isLecturePage ? (
-        <button
-          className="bg-blue-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center"
-          onClick={handleGenerateNotes}
-          disabled={isLoading}
-        >
-          <span className="text-lg">&#10003;</span>
-          <span className="ml-2">Generate</span>
-        </button>
       ) : (
-        <p className="text-gray-500">Not a video lecture</p>
+        <div className="space-y-2">
+          {savedNotes ? (
+            <>
+              <button
+                className="w-full bg-green-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center"
+                onClick={showSavedNotes}
+              >
+                <span className="text-lg mr-2">📝</span>
+                View Saved Notes
+              </button>
+              <button
+                className="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center"
+                onClick={handleGenerateNotes}
+                disabled={isLoading}
+              >
+                <span className="text-lg mr-2">🔄</span>
+                Regenerate Notes
+              </button>
+            </>
+          ) : (
+            <button
+              className="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center"
+              onClick={handleGenerateNotes}
+              disabled={isLoading}
+            >
+              <span className="text-lg mr-2">✨</span>
+              Generate Notes
+            </button>
+          )}
+        </div>
       )}
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}{" "}
+      {error && <p className="text-red-500 text-sm">{error}</p>}
     </div>
   )
 }

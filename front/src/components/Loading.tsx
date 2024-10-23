@@ -29,7 +29,7 @@ const Loading: React.FC<LoadingProps> = ({ time }) => {
   }, [time])
 
   return (
-    <div className="flex flex-col items-center justify-center h-fit py-2">
+    <div className="flex flex-col items-center justify-center h-fit w-full py-2">
       <div className="text-xl font-medium text-gray-800 mb-6 animate-pulse">
         Loading... {Math.floor(progress)}%
       </div>
