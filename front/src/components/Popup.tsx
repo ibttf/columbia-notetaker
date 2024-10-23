@@ -288,7 +288,7 @@ const Popup: React.FC = () => {
     }
   }
   const lengthToSeconds = (length: number): number => {
-    return Math.ceil(length / 1500)
+    return Math.ceil(length / 1000)
   }
 
   if (!isLecturePage) {
@@ -306,29 +306,21 @@ const Popup: React.FC = () => {
           {savedNotes ? (
             <>
               <button
-                className="w-48 bg-green-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center"
+                className="w-36 bg-green-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center"
                 onClick={showSavedNotes}
               >
                 <span className="text-md mr-2">📝</span>
-                View Saved Notes
-              </button>
-              <button
-                className="w-48 bg-blue-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center"
-                onClick={handleGenerateNotes}
-                disabled={isLoading}
-              >
-                <span className="text-md mr-2">🔄</span>
-                Regenerate Notes
+                View Notes
               </button>
             </>
           ) : (
             <button
-              className="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center"
+              className="w-36 bg-blue-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center"
               onClick={handleGenerateNotes}
               disabled={isLoading}
             >
-              <span className="text-lg mr-2">✨</span>
-              Generate Notes
+              <span className="text-md mr-2">✨</span>
+              Write Notes
             </button>
           )}
         </div>

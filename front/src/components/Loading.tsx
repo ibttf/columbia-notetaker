@@ -9,18 +9,34 @@ const Loading: React.FC<LoadingProps> = ({ time }) => {
   const [progress, setProgress] = useState(0)
 
   const getRandomIncrement = useCallback(() => {
-    // Bigger jumps at the start, smaller towards the end
+    // Much bigger jumps at the start
+    if (progress < 30) {
+      return Math.random() * 15 + 5 // 5-20% jumps in early stage
+    }
+    // Medium jumps in middle stage
+    if (progress < 70) {
+      return Math.random() * 8 + 2 // 2-10% jumps
+    }
+    // Smaller jumps near the end
     const remainingProgress = 99 - progress
-    const maxJump = Math.max(remainingProgress / 3, 2) // Never jump less than 2%
+    const maxJump = Math.max(remainingProgress / 4, 1) // Never jump less than 1%
     return Math.random() * maxJump
   }, [progress])
 
   const getRandomDelay = useCallback(() => {
-    // More frequent updates at start, slower towards end
-    const baseDelay = (time * 1000) / 20 // Roughly 20 jumps total
-    const variability = baseDelay * 0.5 // 50% variability
+    // Very quick updates at start
+    if (progress < 30) {
+      return Math.random() * 100 + 50 // 50-150ms delays
+    }
+    // Moderate delays in middle
+    if (progress < 70) {
+      return Math.random() * 200 + 100 // 100-300ms delays
+    }
+    // Slower towards end
+    const baseDelay = (time * 1000) / 15
+    const variability = baseDelay * 0.5
     return baseDelay + (Math.random() * variability - variability / 2)
-  }, [time])
+  }, [time, progress])
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | null = null
@@ -51,7 +67,6 @@ const Loading: React.FC<LoadingProps> = ({ time }) => {
     }
   }, [time, getRandomIncrement, getRandomDelay, progress])
 
-  // Determine animation class based on whether we just had an increment
   const textClass =
     progress === 99
       ? "text-lg font-medium text-gray-800"
