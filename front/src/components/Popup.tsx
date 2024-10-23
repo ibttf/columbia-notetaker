@@ -17,6 +17,7 @@ const Popup: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string>("")
   const [savedNotes, setSavedNotes] = useState<string | null>(null)
+  const [length, setLength] = useState<number>(0)
 
   useEffect(() => {
     checkIfLecturePage()
@@ -176,9 +177,6 @@ const Popup: React.FC = () => {
   }
 
   const handleGenerateNotes = async () => {
-    setIsLoading(true)
-    setError("")
-
     try {
       const tabs = await chrome.tabs.query({
         active: true,
@@ -198,6 +196,9 @@ const Popup: React.FC = () => {
       if (!response?.textContent) {
         throw new Error("Failed to parse HTML content")
       }
+      setLength(response.textContent.length)
+      setIsLoading(true)
+      setError("")
 
       console.log("Sending request to generate notes")
       const notesResponse = await fetch(
@@ -286,6 +287,9 @@ const Popup: React.FC = () => {
       throw error
     }
   }
+  const lengthToSeconds = (length: number): number => {
+    return Math.ceil(length / 1500)
+  }
 
   if (!isLecturePage) {
     return <p className="text-gray-500 p-4">Not a video lecture</p>
@@ -295,25 +299,25 @@ const Popup: React.FC = () => {
     <div className="p-4 space-y-4">
       {isLoading ? (
         <div className="flex items-center justify-center">
-          <Loading time={20} />
+          <Loading time={lengthToSeconds(length)} />
         </div>
       ) : (
         <div className="space-y-2">
           {savedNotes ? (
             <>
               <button
-                className="w-full bg-green-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center"
+                className="w-48 bg-green-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center"
                 onClick={showSavedNotes}
               >
-                <span className="text-lg mr-2">📝</span>
+                <span className="text-md mr-2">📝</span>
                 View Saved Notes
               </button>
               <button
-                className="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center"
+                className="w-48 bg-blue-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center"
                 onClick={handleGenerateNotes}
                 disabled={isLoading}
               >
-                <span className="text-lg mr-2">🔄</span>
+                <span className="text-md mr-2">🔄</span>
                 Regenerate Notes
               </button>
             </>
