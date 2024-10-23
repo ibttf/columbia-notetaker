@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"
 import { AiOutlineLoading } from "react-icons/ai"
-const Popup: React.FC = () => {
+
+const MiniBanner: React.FC = () => {
   const [notes, setNotes] = useState<string>("")
   const [isLecturePage, setIsLecturePage] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -26,37 +27,30 @@ const Popup: React.FC = () => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const activeTab = tabs[0]
         if (activeTab && activeTab.id) {
-          chrome.scripting.executeScript(
-            {
-              target: { tabId: activeTab.id },
-              files: ["contentScript.js"]
-            },
-            () => {
-              chrome.tabs.sendMessage(
-                activeTab.id!,
-                { action: "parseHTML" },
-                (response) => {
-                  if (response && response.textContent) {
-                    // Send data to the background script
-                    chrome.runtime.sendMessage(
-                      {
-                        action: "generateNotes",
-                        payload: {
-                          transcript: response.textContent,
-                          baseUrl: activeTab.url
-                        }
-                      },
-                      (response) => {
-                        if (response && response.error) {
-                          makeError(response.error)
-                        }
-                      }
-                    )
-                  } else {
-                    makeError("Failed to parse HTML.")
+          // Directly send a message to the content script
+          chrome.tabs.sendMessage(
+            activeTab.id!,
+            { action: "parseHTML" },
+            (response) => {
+              if (response && response.textContent) {
+                // Send data to the background script
+                chrome.runtime.sendMessage(
+                  {
+                    action: "generateNotes",
+                    payload: {
+                      transcript: response.textContent,
+                      baseUrl: activeTab.url
+                    }
+                  },
+                  (response) => {
+                    if (response && response.error) {
+                      makeError(response.error)
+                    }
                   }
-                }
-              )
+                )
+              } else {
+                makeError("Failed to parse HTML.")
+              }
             }
           )
         } else {
@@ -65,12 +59,9 @@ const Popup: React.FC = () => {
       })
     }
   }
+
   return (
-    <div
-      className={`transition-opacity duration-300 opacity-100 w-fit ${
-        isLoading && "p-4"
-      }`}
-    >
+    <div className="fixed top-4 right-4 z-50 bg-white shadow-lg rounded-lg p-4 border border-gray-300">
       {isLoading ? (
         <div className="flex items-center">
           <AiOutlineLoading className="animate-spin text-blue-500" size={20} />{" "}
@@ -87,9 +78,9 @@ const Popup: React.FC = () => {
       ) : (
         <p className="text-gray-500">Not a video lecture</p>
       )}
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}{" "}
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
   )
 }
 
-export default Popup
+export default MiniBanner

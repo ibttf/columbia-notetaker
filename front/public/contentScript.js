@@ -30,5 +30,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // Open a new tab with the Blob URL
     window.open(blobUrl, "_blank")
+  } else if (request.action === "injectBanner") {
+    // Check if the banner is already injected
+    if (!document.getElementById("vidnotes-extension-root")) {
+      // Create a div for the banner
+      const rootDiv = document.createElement("div")
+      rootDiv.id = "vidnotes-extension-root"
+      rootDiv.style.position = "fixed"
+      rootDiv.style.top = "10px"
+      rootDiv.style.right = "10px"
+      rootDiv.style.zIndex = "10000" // Ensure it's above other content
+      document.body.appendChild(rootDiv)
+
+      // Inject the bundled React app (inject.bundle.js)
+      const script = document.createElement("script")
+      script.src = chrome.runtime.getURL("inject.bundle.js")
+      document.body.appendChild(script)
+    }
+    sendResponse({ status: "Banner injected" })
   }
 })

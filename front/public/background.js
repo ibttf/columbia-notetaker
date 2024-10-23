@@ -6,27 +6,24 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log("Extension installed or updated.")
 })
 
-// True background worker; listens for tab updates and detects whether the tab is from panopto
+// Listen for tab updates and inject the banner if it's a video lecture page
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (
     changeInfo.status === "complete" &&
     tab.url &&
     tab.url.includes("hosted.panopto.com")
   ) {
-    chrome.action.openPopup() // Automatically open the popup
+    // Send a message to the content script to inject the banner
+    chrome.tabs.sendMessage(tabId, { action: "injectBanner" }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.log("Error injecting banner:", chrome.runtime.lastError.message)
+      } else {
+        console.log("Banner injected on Panopto page.")
+      }
+    })
   } else {
     console.log("Tab updated, but not a lecture")
   }
-})
-
-// Listen for messages from popup specifically// background.js
-
-// Log when the service worker starts
-console.log("Background service worker started.")
-
-// Event listener when the extension is installed or updated
-chrome.runtime.onInstalled.addListener(() => {
-  console.log("Extension installed or updated.")
 })
 
 // Listen for messages from the popup

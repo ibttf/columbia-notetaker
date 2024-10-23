@@ -3,10 +3,13 @@
   "name": "Vidnotes",
   "version": "1.0",
   "description": "A chrome extension to make AI-generated video notes based on Columbia recitation recordings.",
-  "action": {
-    "default_popup": "index.html"
-  },
   "permissions": ["activeTab", "scripting"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"]
+    }
+  ],
   "host_permissions": [
     "https://cvn.hosted.panopto.com/*",
     "https://columbia.hosted.panopto.com/*",
@@ -15,7 +18,12 @@
   "background": {
     "service_worker": "background.js"
   },
-
+  "web_accessible_resources": [
+    {
+      "resources": ["inject.bundle.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "icons": {
     "48": "icon.png"
   }

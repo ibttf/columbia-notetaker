@@ -4,7 +4,7 @@ const CopyPlugin = require("copy-webpack-plugin")
 
 module.exports = {
   entry: {
-    index: "./src/index.tsx"
+    inject: "./src/inject.js"
   },
   mode: "production",
   module: {
@@ -52,7 +52,7 @@ module.exports = {
   },
   output: {
     path: path.join(__dirname, "dist/js"),
-    filename: "[name].js"
+    filename: "[name].bundle.js"
   }
 }
 
